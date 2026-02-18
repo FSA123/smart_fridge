@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Fridge Dashboard</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-snowflake"></i> Smart Fridge Vision</h1>
+            <p id="last-updated">Updating...</p>
+        </header>
+
+        <div class="dashboard-grid">
+
+            <!-- Left: Recommendations -->
+            <section class="card recommendations">
+                <h2><i class="fas fa-clock"></i> Consume Soon</h2>
+                <div id="recommendations-list">
+                    <p>Loading...</p>
+                </div>
+            </section>
+
+            <!-- Middle: Main Grid Inventory -->
+            <section class="card inventory">
+                <h2><i class="fas fa-th"></i> What's Inside</h2>
+                <div id="inventory-grid" class="inventory-container">
+                    <!-- Cards will be injected here -->
+                    <p>Loading...</p>
+                </div>
+            </section>
+
+            <!-- Right: Shopping List -->
+            <section class="card shopping-list">
+                <h2><i class="fas fa-shopping-basket"></i> Missing Items</h2>
+                <ul id="missing-list">
+                    <p>Loading...</p>
+                </ul>
+            </section>
+
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>
