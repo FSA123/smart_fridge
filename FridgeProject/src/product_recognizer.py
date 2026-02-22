@@ -56,8 +56,12 @@ class ProductRecognizer:
             text_features = self.clip_model.encode_text(text_inputs)
             text_features /= text_features.norm(dim=-1, keepdim=True)
 
+            # Store normalized features as numpy matrix for vectorized search
+            self.product_embeddings = text_features.cpu().numpy()
+            self.product_labels = products
+
             for i, product in enumerate(products):
-                db[product] = text_features[i].cpu().numpy()
+                db[product] = self.product_embeddings[i]
 
         return db
 
@@ -140,15 +144,15 @@ class ProductRecognizer:
             image_features = image_features.cpu().numpy()
 
         # Calculate Similarity
-        best_match = None
-        max_similarity = -1.0
-
-        for label, db_embedding in self.product_db.items():
-            # Cosine similarity: dot product of normalized vectors
-            similarity = np.dot(image_features, db_embedding.T).item()
-            if similarity > max_similarity:
-                max_similarity = similarity
-                best_match = label
+        if len(self.product_labels) > 0:
+            # Vectorized cosine similarity: dot product of (1, D) and (D, N) -> (1, N)
+            similarities = np.dot(image_features, self.product_embeddings.T)
+            best_idx = np.argmax(similarities)
+            max_similarity = similarities[0, best_idx].item()
+            best_match = self.product_labels[best_idx]
+        else:
+            best_match = None
+            max_similarity = -1.0
 
         return best_match, max_similarity
 
