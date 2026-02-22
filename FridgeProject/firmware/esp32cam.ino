@@ -1,15 +1,12 @@
-//DIGI-02284266_EXT
-//Y4isUmxM
 #include "esp_camera.h"
 #include <WiFi.h>
 #include <HTTPClient.h>
+#include "secrets.h"
 
 // ==========================================
 // 1. YOUR NETWORK & SERVER SETTINGS
 // ==========================================
-const char* ssid = "DIGI-02284266_EXT";            // Replace with your WiFi
-const char* password = "Y4isUmxM";    // Replace with your Password
-const char* serverUrl = "http://192.168.1.10:5001/upload"; // Use your Mac's IP
+// Credentials are now in secrets.h
 
 // ==========================================
 // 2. HARDWARE PINOUT (AI-Thinker)
