@@ -14,6 +14,15 @@ class FoodDetector(threading.Thread):
         self.interval = interval
         self.grace_period = grace_period # Seconds before marking undetected item as removed
         self.processed_images = set()
+
+        # Optimization: Prevent processing storm on restart by skipping old images
+        if os.path.exists(self.image_folder):
+            existing_files = sorted([f for f in os.listdir(self.image_folder) if f.endswith(".jpg")])
+            # Keep the last 5 images for context/track initialization, skip the rest
+            if len(existing_files) > 5:
+                self.processed_images.update(existing_files[:-5])
+                print(f"Skipped {len(existing_files) - 5} old images to prevent processing storm.")
+
         self.running = True
         self.daemon = True # Daemon thread exits when main program exits
 
