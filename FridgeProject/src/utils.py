@@ -1,4 +1,7 @@
 from datetime import datetime
+from functools import lru_cache
+from collections import namedtuple
+import time
 from src.models import Item
 
 # Basic items list to check against
@@ -20,17 +23,18 @@ SHELF_LIFE = {
     'fruit': 7
 }
 
-def get_recommendations(items):
+ItemData = namedtuple('ItemData', ['id', 'label', 'entry_date', 'image_path'])
+
+@lru_cache(maxsize=128)
+def _calculate_recommendations(items_tuple, time_bucket):
     """
-    Returns a list of items sorted by urgency to consume.
-    Urgency is calculated based on time in fridge vs shelf life.
-    Returns a list of dictionaries with item details and status.
+    Cached worker function for recommendations.
+    Accepts tuple of ItemData and time bucket.
     """
-    # Calculate days in fridge and estimated days remaining
     scored_items = []
     now = datetime.utcnow()
 
-    for item in items:
+    for item in items_tuple:
         days_in_fridge = (now - item.entry_date).days
         # Default to 7 days if unknown
         shelf_life = SHELF_LIFE.get(item.label.lower(), 7)
@@ -49,6 +53,20 @@ def get_recommendations(items):
     scored_items.sort(key=lambda x: x['days_remaining'])
 
     return scored_items
+
+def get_recommendations(items):
+    """
+    Returns a list of items sorted by urgency to consume.
+    Urgency is calculated based on time in fridge vs shelf life.
+    Returns a list of dictionaries with item details and status.
+    """
+    # Convert list of Item objects to tuple of ItemData for caching
+    items_tuple = tuple(ItemData(i.id, i.label, i.entry_date, i.image_path) for i in items)
+
+    # Time bucket: e.g. every hour (3600 seconds) to allow cache expiry/update
+    time_bucket = int(time.time() // 3600)
+
+    return _calculate_recommendations(items_tuple, time_bucket)
 
 def get_missing_items(current_items):
     """
