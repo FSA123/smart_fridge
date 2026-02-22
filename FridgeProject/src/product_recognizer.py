@@ -188,7 +188,7 @@ class ProductRecognizer:
 
         return None, 0.0
 
-    def call_vlm_fallback(self, crop_image):
+    def call_vlm_fallback(self):
         """
         Stage 3: Vision-Language Model Fallback (Mock).
         Simulates calling Gemini/Google Vision API.
@@ -248,7 +248,7 @@ class ProductRecognizer:
             if final_score < 0.9:
                 # --- Stage 3: VLM Fallback ---
                 # Only if cumulative score is low
-                s3_label, s3_score = self.call_vlm_fallback(crop)
+                s3_label, s3_score = self.call_vlm_fallback()
                 if s3_label != "Unknown":
                     final_label = s3_label
                     final_score = s3_score
