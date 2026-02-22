@@ -4,9 +4,9 @@ from datetime import datetime
 from src.models import Item
 from src.database import db_session
 from src.utils import get_recommendations, get_missing_items
+from src.config import IMAGES_DIR
 
 main = Blueprint('main', __name__)
-SAVE_PATH = "images"
 
 @main.route('/')
 def dashboard():
@@ -23,10 +23,10 @@ def upload():
         filename = f"capture_{timestamp}.jpg"
 
         # Ensure directory exists
-        if not os.path.exists(SAVE_PATH):
-            os.makedirs(SAVE_PATH)
+        if not os.path.exists(IMAGES_DIR):
+            os.makedirs(IMAGES_DIR)
 
-        filepath = os.path.join(SAVE_PATH, filename)
+        filepath = os.path.join(IMAGES_DIR, filename)
 
         # Write the binary data to a file
         with open(filepath, "wb") as f:
@@ -54,4 +54,4 @@ def api_data():
 
 @main.route('/images/<path:filename>')
 def serve_image(filename):
-    return send_from_directory(os.path.abspath(SAVE_PATH), filename)
+    return send_from_directory(IMAGES_DIR, filename)

@@ -3,6 +3,7 @@ import threading
 from src.database import init_db
 from src.detector import FoodDetector
 from src.web import create_app
+from src.config import IMAGES_DIR
 
 def main():
     # 1. Initialize Database
@@ -12,7 +13,7 @@ def main():
     # 2. Start Food Detector (Background Thread)
     # Detects objects in 'images/' folder every 5 seconds
     # Ensure yolov8n.pt exists or let it download
-    detector = FoodDetector(image_folder="images", model_path="yolov8n.pt", interval=5)
+    detector = FoodDetector(image_folder=IMAGES_DIR, model_path="yolov8n.pt", interval=5)
     detector.start()
 
     # 3. Start Web Server
