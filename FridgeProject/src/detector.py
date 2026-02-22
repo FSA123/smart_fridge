@@ -5,9 +5,10 @@ from datetime import datetime, timedelta
 from src.product_recognizer import ProductRecognizer
 from src.database import db_session
 from src.models import Item
+from src.config import IMAGES_DIR
 
 class FoodDetector(threading.Thread):
-    def __init__(self, image_folder="images", model_path="yolov8n.pt", interval=5, grace_period=300):
+    def __init__(self, image_folder=IMAGES_DIR, model_path="yolov8n.pt", interval=5, grace_period=300):
         super().__init__()
         self.image_folder = image_folder
         self.model_path = model_path
