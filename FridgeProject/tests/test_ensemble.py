@@ -17,7 +17,7 @@ def test_ensemble():
     recognizer.detect_objects = MagicMock(return_value=dummy_detections)
 
     # Mock Stage 1 to return a medium score (to trigger Stage 2)
-    recognizer.get_local_match = MagicMock(return_value=("Possible Milk", 0.7))
+    recognizer.get_batch_local_matches = MagicMock(return_value=[("Possible Milk", 0.7)])
 
     # Mock Stage 2 to return a match (to boost score)
     recognizer.perform_ocr = MagicMock(return_value=("Confirmed Milk", 0.95))
@@ -39,7 +39,7 @@ def test_ensemble():
         print("Ensemble Test Failed: No results.")
 
     # Test Fallback Logic (Low S1, No S2 match -> S3)
-    recognizer.get_local_match = MagicMock(return_value=("Unknown Blob", 0.4))
+    recognizer.get_batch_local_matches = MagicMock(return_value=[("Unknown Blob", 0.4)])
     recognizer.perform_ocr = MagicMock(return_value=(None, 0.0))
     recognizer.call_vlm_fallback = MagicMock(return_value=("VLM Apple", 0.88))
 
@@ -55,7 +55,7 @@ def test_ensemble():
              print(f"Ensemble Fallback Test Failed: {res}")
 
     # Test Active Learning Logging
-    recognizer.get_local_match = MagicMock(return_value=("Unknown Blob", 0.4))
+    recognizer.get_batch_local_matches = MagicMock(return_value=[("Unknown Blob", 0.4)])
     recognizer.perform_ocr = MagicMock(return_value=(None, 0.0))
     recognizer.call_vlm_fallback = MagicMock(return_value=("Unknown", 0.0))
 
