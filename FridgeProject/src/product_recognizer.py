@@ -121,6 +121,48 @@ class ProductRecognizer:
 
         return detections
 
+    def get_batch_local_matches(self, crops):
+        """
+        Batch version of get_local_match.
+        Returns a list of tuples: (best_match_label, similarity_score)
+        """
+        if not crops:
+            return []
+
+        # Preprocess all crops
+        inputs = []
+        for c in crops:
+            rgb_image = cv2.cvtColor(c, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(rgb_image)
+            inputs.append(self.clip_preprocess(pil_image))
+
+        # Stack into batch
+        image_input = torch.stack(inputs).to(self.device)
+
+        with torch.no_grad():
+            image_features = self.clip_model.encode_image(image_input)
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+            image_features = image_features.cpu().numpy()
+
+        # Compute similarities against DB
+        labels = list(self.product_db.keys())
+        # self.product_db values are numpy arrays of shape (1, D)
+        # We need to stack them into (M, D)
+        db_matrix = np.vstack(list(self.product_db.values()))
+
+        # Compute cosine similarity matrix: (N, D) @ (M, D).T -> (N, M)
+        sim_matrix = np.dot(image_features, db_matrix.T)
+
+        results = []
+        for i in range(len(crops)):
+            scores = sim_matrix[i]
+            best_idx = np.argmax(scores)
+            max_score = float(scores[best_idx])
+            best_label = labels[best_idx]
+            results.append((best_label, max_score))
+
+        return results
+
     def get_local_match(self, crop_image):
         """
         Stage 1: Local Embedding Match using CLIP.
@@ -212,12 +254,20 @@ class ProductRecognizer:
         detections = self.detect_objects(image_path)
         results = []
 
-        for det in detections:
+        if not detections:
+            return []
+
+        # Collect crops for batch processing
+        crops = [d['crop'] for d in detections]
+
+        # --- Stage 1: Batch Local Embedding Match ---
+        s1_results = self.get_batch_local_matches(crops)
+
+        for i, det in enumerate(detections):
             crop = det['crop']
             bbox = det['bbox']
 
-            # --- Stage 1: Local Embedding Match ---
-            s1_label, s1_score = self.get_local_match(crop)
+            s1_label, s1_score = s1_results[i]
             print(f"Stage 1: {s1_label} ({s1_score:.2f})")
 
             final_label = s1_label
