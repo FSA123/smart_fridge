@@ -3,3 +3,11 @@ ultralytics
 sqlalchemy
 pillow
 opencv-python-headless
+ftfy
+regex
+tqdm
+easyocr
+google-generativeai
+# clip is installed from git, not pypi, so usually requirements.txt handles it differently or assumes it's installed.
+# But for standard pip, we can add the git url.
+git+https://github.com/openai/CLIP.git
