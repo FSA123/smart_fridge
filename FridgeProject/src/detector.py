@@ -63,6 +63,9 @@ class FoodDetector(threading.Thread):
 
         current_files = sorted([f for f in os.listdir(self.image_folder) if f.endswith(".jpg")])
 
+        # Remove processed images that no longer exist in the folder
+        self.processed_images.intersection_update(current_files)
+
         # Process only new files
         new_files = [f for f in current_files if f not in self.processed_images]
 
