@@ -36,11 +36,9 @@ class FoodDetector(threading.Thread):
         while self.running:
             try:
                 self.process_folder()
-                # We can also run a cleanup based on real time for items not seen recently
-                # but if we process images, we do cleanup there based on image time.
-                # If no images come, we might want to cleanup based on real time?
-                # For now, let's rely on image processing to trigger updates.
-                pass
+                # Note: Cleanup is handled within process_folder() based on image timestamps.
+                # Real-time cleanup is intentionally avoided to prevent expiring items
+                # during camera sleep intervals.
             except Exception as e:
                 print(f"Error in detector loop: {e}")
             time.sleep(self.interval)
