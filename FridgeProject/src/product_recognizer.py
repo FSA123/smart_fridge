@@ -3,6 +3,8 @@ import clip
 import easyocr
 import cv2
 import numpy as np
+import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from ultralytics import YOLO
 from PIL import Image
@@ -30,7 +32,33 @@ class ProductRecognizer:
         print("Initializing Mock Vector Database...")
         self.product_db = self._init_mock_db()
 
+        # 5. Setup Logging
+        self._setup_logger()
+
         print("ProductRecognizer initialized.")
+
+    def _setup_logger(self):
+        """
+        Sets up a rotating file logger to prevent unbounded file growth.
+        """
+        self.logger = logging.getLogger("ProductRecognizer")
+        self.logger.setLevel(logging.INFO)
+        # Prevent propagation to root logger (avoid double logging to console)
+        self.logger.propagate = False
+
+        # Avoid adding handlers multiple times
+        if not self.logger.handlers:
+            # Rotate at 5MB, keep 5 backups
+            handler = RotatingFileHandler(
+                "active_learning_candidates.log",
+                maxBytes=5*1024*1024,
+                backupCount=5
+            )
+            # Use a formatter that just passes the message through,
+            # because the existing code formats the timestamp manually.
+            formatter = logging.Formatter('%(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
 
     def _init_mock_db(self):
         """
@@ -268,16 +296,16 @@ class ProductRecognizer:
         """
         Logs low confidence detections to a file for Active Learning.
         """
-        log_file = "active_learning_candidates.log"
         timestamp = datetime.now().isoformat()
 
         # In a real system, we might save the crop to a folder
         # crop_filename = f"low_conf_{timestamp}.jpg"
         # cv2.imwrite(crop_filename, crop)
 
-        with open(log_file, "a") as f:
-            f.write(f"[{timestamp}] Low confidence detection in {image_path}. "
-                    f"Stage 1 match: {s1_label} ({s1_score:.2f})\n")
+        message = (f"[{timestamp}] Low confidence detection in {image_path}. "
+                   f"Stage 1 match: {s1_label} ({s1_score:.2f})")
+
+        self.logger.info(message)
 
 if __name__ == "__main__":
     recognizer = ProductRecognizer()
