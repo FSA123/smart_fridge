@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, DateTime
+from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from src.database import Base
 from datetime import datetime
 
@@ -23,3 +23,13 @@ class Item(Base):
             'image_path': self.image_path,
             'status': self.status
         }
+
+class ProductType(Base):
+    __tablename__ = 'product_types'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(50), unique=True, nullable=False)
+    shelf_life_days = Column(Integer, default=7)
+    is_basic = Column(Boolean, default=False)
+
+    def __repr__(self):
+        return f'<ProductType {self.name!r}>'
