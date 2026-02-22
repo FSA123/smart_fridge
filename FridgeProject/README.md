@@ -29,8 +29,9 @@ This project extends a food recognition model to identify food in a fridge, trac
    ```
 
 2. (Optional) Setup ESP32-CAM:
+   - Copy `firmware/secrets_example.h` to `firmware/secrets.h`.
+   - Update `firmware/secrets.h` with your WiFi credentials and Server IP.
    - Flash `firmware/esp32cam.ino` to your ESP32-CAM.
-   - Configure WiFi credentials and Server IP in the `.ino` file.
 
 ## Usage
 
