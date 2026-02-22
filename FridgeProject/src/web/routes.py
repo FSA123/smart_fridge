@@ -1,4 +1,6 @@
 import os
+import io
+from PIL import Image
 from flask import Blueprint, render_template, request, jsonify, send_from_directory, current_app
 from datetime import datetime
 from src.models import Item
@@ -17,6 +19,23 @@ def upload():
     # The ESP32 sends the photo in the 'body' of the message
     img_data = request.data
     if img_data:
+        try:
+            # Validate image data
+            image = Image.open(io.BytesIO(img_data))
+            image.verify()  # Check if it's a valid image
+
+            # Reset file pointer after verify() if we were to reuse the object,
+            # but here we just need to know it's valid.
+            # However, verify() might not detect all issues, but it's a good start.
+            # We should also check the format.
+            if image.format != 'JPEG':
+                print(f"Invalid image format: {image.format}")
+                return "FAILED: Only JPEG images are supported", 400
+
+        except Exception as e:
+            print(f"Invalid image data: {e}")
+            return "FAILED: Invalid image data", 400
+
         # Create a unique name using the current date and time
         # This format MUST match src/detector.py expectations
         timestamp = datetime.utcnow().strftime("%Y%m%d_%H%M%S")
