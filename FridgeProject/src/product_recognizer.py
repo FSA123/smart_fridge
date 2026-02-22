@@ -282,6 +282,3 @@ class ProductRecognizer:
 if __name__ == "__main__":
     recognizer = ProductRecognizer()
     print("DB Keys:", list(recognizer.product_db.keys()))
-    # Test detection (requires an image 'test_image.jpg')
-    # detections = recognizer.detect_objects("test_image.jpg")
-    # print(f"Detections: {len(detections)}")
