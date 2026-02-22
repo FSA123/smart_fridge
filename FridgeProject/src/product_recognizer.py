@@ -254,7 +254,7 @@ class ProductRecognizer:
                     final_score = s3_score
                 else:
                     # Log low confidence detection for Active Learning
-                    self._log_low_confidence(image_path, crop, s1_label, s1_score)
+                    self._log_low_confidence(image_path, s1_label, s1_score)
 
             results.append({
                 'label': final_label if final_label else "Unknown",
@@ -264,16 +264,12 @@ class ProductRecognizer:
 
         return results
 
-    def _log_low_confidence(self, image_path, crop, s1_label, s1_score):
+    def _log_low_confidence(self, image_path, s1_label, s1_score):
         """
         Logs low confidence detections to a file for Active Learning.
         """
         log_file = "active_learning_candidates.log"
         timestamp = datetime.now().isoformat()
-
-        # In a real system, we might save the crop to a folder
-        # crop_filename = f"low_conf_{timestamp}.jpg"
-        # cv2.imwrite(crop_filename, crop)
 
         with open(log_file, "a") as f:
             f.write(f"[{timestamp}] Low confidence detection in {image_path}. "
