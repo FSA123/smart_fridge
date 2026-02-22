@@ -38,7 +38,15 @@ This project extends a food recognition model to identify food in a fridge, trac
    ```bash
    python3 main.py
    ```
-   This will start the web server on port 5001 and the background detector.
+   This will start the web server on port 5001 (bound to localhost by default) and the background detector.
+
+   **Note on Remote Access / ESP32 Integration:**
+   By default, the server only accepts connections from the local machine (`127.0.0.1`). If you need to allow access from other devices (like the ESP32-CAM), set the `FLASK_HOST` environment variable:
+   ```bash
+   export FLASK_HOST=0.0.0.0
+   python3 main.py
+   ```
+   **Security Warning:** This exposes the application to the entire network. Ensure you are on a trusted network.
 
 2. Open the dashboard:
    - Go to `http://localhost:5001` in your browser.
