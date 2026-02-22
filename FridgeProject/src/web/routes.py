@@ -1,5 +1,5 @@
 import os
-from flask import Blueprint, render_template, request, jsonify, send_from_directory, current_app
+from flask import Blueprint, render_template, request, jsonify, send_from_directory
 from datetime import datetime
 from src.models import Item
 from src.database import db_session
