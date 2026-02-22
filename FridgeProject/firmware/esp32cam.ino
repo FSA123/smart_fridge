@@ -10,6 +10,7 @@
 const char* ssid = "DIGI-02284266_EXT";            // Replace with your WiFi
 const char* password = "Y4isUmxM";    // Replace with your Password
 const char* serverUrl = "http://192.168.1.10:5001/upload"; // Use your Mac's IP
+const char* apiKey = "YOUR_API_KEY_HERE";   // MUST match FRIDGE_API_KEY on server
 
 // ==========================================
 // 2. HARDWARE PINOUT (AI-Thinker)
@@ -157,6 +158,7 @@ void takeAndSendPhoto() {
   
   http.begin(serverUrl);
   http.addHeader("Content-Type", "image/jpeg");
+  http.addHeader("X-API-Key", apiKey);
   
   int httpResponseCode = http.POST(fb->buf, fb->len);
   

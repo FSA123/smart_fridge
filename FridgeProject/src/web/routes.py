@@ -1,6 +1,7 @@
 import os
-from flask import Blueprint, render_template, request, jsonify, send_from_directory, current_app
+from flask import Blueprint, render_template, request, jsonify, send_from_directory, current_app, abort
 from datetime import datetime
+import hmac
 from src.models import Item
 from src.database import db_session
 from src.utils import get_recommendations, get_missing_items
@@ -14,6 +15,17 @@ def dashboard():
 
 @main.route('/upload', methods=['POST'])
 def upload():
+    # Security: Verify API Key
+    api_key = os.environ.get('FRIDGE_API_KEY')
+    if not api_key:
+        print("Security Error: FRIDGE_API_KEY environment variable not set. Refusing upload.")
+        return "Server misconfiguration", 500
+
+    request_key = request.headers.get('X-API-Key')
+    if not request_key or not hmac.compare_digest(request_key, api_key):
+        print("Security Warning: Unauthorized upload attempt.")
+        return "Unauthorized", 401
+
     # The ESP32 sends the photo in the 'body' of the message
     img_data = request.data
     if img_data:
