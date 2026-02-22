@@ -16,10 +16,12 @@ def main():
     detector.start()
 
     # 3. Start Web Server
-    # Host 0.0.0.0 allows access from other devices (like ESP32)
-    print("Starting Web Server on port 5001...")
+    # Host defaults to 127.0.0.1 for security.
+    # Set FLASK_HOST=0.0.0.0 to allow access from other devices (like ESP32)
+    host = os.getenv('FLASK_HOST', '127.0.0.1')
+    print(f"Starting Web Server on {host}:5001...")
     app = create_app()
-    app.run(host='0.0.0.0', port=5001, debug=False, use_reloader=False)
+    app.run(host=host, port=5001, debug=False, use_reloader=False)
     # use_reloader=False prevents double initialization in debug mode
 
 if __name__ == "__main__":
