@@ -61,10 +61,11 @@ class FoodDetector(threading.Thread):
         if not os.path.exists(self.image_folder):
             os.makedirs(self.image_folder)
 
-        current_files = sorted([f for f in os.listdir(self.image_folder) if f.endswith(".jpg")])
+        all_files = os.listdir(self.image_folder)
 
         # Process only new files
-        new_files = [f for f in current_files if f not in self.processed_images]
+        new_files = [f for f in all_files if f.endswith(".jpg") and f not in self.processed_images]
+        new_files.sort()
 
         for file in new_files:
             self.processed_images.add(file)
