@@ -177,8 +177,7 @@ class ProductRecognizer:
             image_features = image_features.cpu().numpy()
 
         # Compute similarities against DB: (N_crops, D) @ (D, N_products) -> (N_crops, N_products)
-        db_matrix = np.vstack(list(self.product_db.values()))
-        sim_matrix = np.dot(image_features, db_matrix.T)
+        sim_matrix = np.dot(image_features, self.product_embeddings.T)
 
         results = []
         for i in range(len(crops)):
