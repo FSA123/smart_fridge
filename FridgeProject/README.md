@@ -29,8 +29,10 @@ This project extends a food recognition model to identify food in a fridge, trac
    ```
 
 2. (Optional) Setup ESP32-CAM:
+   - Go to `firmware/` directory.
+   - Copy `secrets_example.h` to `secrets.h`.
+   - Update `secrets.h` with your WiFi credentials, Server IP, and API key.
    - Flash `firmware/esp32cam.ino` to your ESP32-CAM.
-   - Configure WiFi credentials and Server IP in the `.ino` file.
 
 ## Usage
 
@@ -57,6 +59,9 @@ This project extends a food recognition model to identify food in a fridge, trac
    - Images should be named `capture_YYYYMMDD_HHMMSS.jpg` for accurate timestamping. If not, the current time is used.
 
 ## Configuration
+- **Secret Key**: Set `SECRET_KEY` environment variable for Flask session security (defaults to `dev_key` in development).
+- **Admin Password**: Set `ADMIN_PASSWORD` environment variable for dashboard login (defaults to `admin`).
+- **API Key**: Set `FRIDGE_API_KEY` environment variable on the server; add the same key to `firmware/secrets.h` as `apiKey`.
 - **Basic Items**: You can configure the list of basic items in `src/utils.py`.
 - **Shelf Life**: Adjust shelf life estimates in `src/utils.py`.
 
