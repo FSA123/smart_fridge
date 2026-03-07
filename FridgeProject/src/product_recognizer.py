@@ -3,6 +3,8 @@ import clip
 import easyocr
 import cv2
 import numpy as np
+import logging
+from logging.handlers import RotatingFileHandler
 from datetime import datetime
 from ultralytics import YOLO
 from PIL import Image
@@ -30,7 +32,33 @@ class ProductRecognizer:
         print("Initializing Mock Vector Database...")
         self.product_db = self._init_mock_db()
 
+        # 5. Setup Logging
+        self._setup_logger()
+
         print("ProductRecognizer initialized.")
+
+    def _setup_logger(self):
+        """
+        Sets up a rotating file logger to prevent unbounded file growth.
+        """
+        self.logger = logging.getLogger("ProductRecognizer")
+        self.logger.setLevel(logging.INFO)
+        # Prevent propagation to root logger (avoid double logging to console)
+        self.logger.propagate = False
+
+        # Avoid adding handlers multiple times
+        if not self.logger.handlers:
+            # Rotate at 5MB, keep 5 backups
+            handler = RotatingFileHandler(
+                "active_learning_candidates.log",
+                maxBytes=5*1024*1024,
+                backupCount=5
+            )
+            # Use a formatter that just passes the message through,
+            # because the existing code formats the timestamp manually.
+            formatter = logging.Formatter('%(message)s')
+            handler.setFormatter(formatter)
+            self.logger.addHandler(handler)
 
     def _init_mock_db(self):
         """
@@ -56,8 +84,12 @@ class ProductRecognizer:
             text_features = self.clip_model.encode_text(text_inputs)
             text_features /= text_features.norm(dim=-1, keepdim=True)
 
+            # Store normalized features as numpy matrix for vectorized search
+            self.product_embeddings = text_features.cpu().numpy()
+            self.product_labels = products
+
             for i, product in enumerate(products):
-                db[product] = text_features[i].cpu().numpy()
+                db[product] = self.product_embeddings[i]
 
         return db
 
@@ -121,6 +153,43 @@ class ProductRecognizer:
 
         return detections
 
+    def get_batch_local_matches(self, crops):
+        """
+        Batch version of get_local_match.
+        Returns a list of tuples: (best_match_label, similarity_score)
+        """
+        if not crops:
+            return []
+
+        # Preprocess all crops
+        inputs = []
+        for c in crops:
+            rgb_image = cv2.cvtColor(c, cv2.COLOR_BGR2RGB)
+            pil_image = Image.fromarray(rgb_image)
+            inputs.append(self.clip_preprocess(pil_image))
+
+        # Stack into batch
+        image_input = torch.stack(inputs).to(self.device)
+
+        with torch.no_grad():
+            image_features = self.clip_model.encode_image(image_input)
+            image_features /= image_features.norm(dim=-1, keepdim=True)
+            image_features = image_features.cpu().numpy()
+
+        # Compute similarities against DB: (N_crops, D) @ (D, N_products) -> (N_crops, N_products)
+        db_matrix = np.vstack(list(self.product_db.values()))
+        sim_matrix = np.dot(image_features, db_matrix.T)
+
+        results = []
+        for i in range(len(crops)):
+            scores = sim_matrix[i]
+            best_idx = np.argmax(scores)
+            max_score = float(scores[best_idx])
+            best_label = self.product_labels[best_idx]
+            results.append((best_label, max_score))
+
+        return results
+
     def get_local_match(self, crop_image):
         """
         Stage 1: Local Embedding Match using CLIP.
@@ -139,16 +208,16 @@ class ProductRecognizer:
             image_features /= image_features.norm(dim=-1, keepdim=True)
             image_features = image_features.cpu().numpy()
 
-        # Calculate Similarity
-        best_match = None
-        max_similarity = -1.0
-
-        for label, db_embedding in self.product_db.items():
-            # Cosine similarity: dot product of normalized vectors
-            similarity = np.dot(image_features, db_embedding.T).item()
-            if similarity > max_similarity:
-                max_similarity = similarity
-                best_match = label
+        # Calculate Similarity (vectorized)
+        if len(self.product_labels) > 0:
+            # Vectorized cosine similarity: dot product of (1, D) and (D, N) -> (1, N)
+            similarities = np.dot(image_features, self.product_embeddings.T)
+            best_idx = np.argmax(similarities)
+            max_similarity = similarities[0, best_idx].item()
+            best_match = self.product_labels[best_idx]
+        else:
+            best_match = None
+            max_similarity = -1.0
 
         return best_match, max_similarity
 
@@ -188,14 +257,14 @@ class ProductRecognizer:
 
         return None, 0.0
 
-    def call_vlm_fallback(self, crop_image):
+    def call_vlm_fallback(self):
         """
         Stage 3: Vision-Language Model Fallback (Mock).
         Simulates calling Gemini/Google Vision API.
         """
         print("Triggering VLM Fallback (Mock)...")
         # In a real implementation, we would encode the image and send to API
-        # response = model.generate_content(["Identify this product", crop_image])
+        # response = model.generate_content(["Identify this product", image])
 
         # specific logic: if we are here, previous stages failed.
         # We'll just return None to indicate failure to identify high confidence,
@@ -206,18 +275,26 @@ class ProductRecognizer:
     def recognize(self, image_path):
         """
         Ensemble Recognition Pipeline.
-        Orchestrates Detection -> Stage 1 -> Stage 2 -> Stage 3.
+        Orchestrates Detection -> Stage 1 (Batch) -> Stage 2 -> Stage 3.
         Returns a list of dicts with keys: 'label', 'confidence', 'bbox'.
         """
         detections = self.detect_objects(image_path)
         results = []
 
-        for det in detections:
+        if not detections:
+            return []
+
+        # Collect crops for batch processing
+        crops = [d['crop'] for d in detections]
+
+        # --- Stage 1: Batch Local Embedding Match ---
+        s1_results = self.get_batch_local_matches(crops)
+
+        for i, det in enumerate(detections):
             crop = det['crop']
             bbox = det['bbox']
 
-            # --- Stage 1: Local Embedding Match ---
-            s1_label, s1_score = self.get_local_match(crop)
+            s1_label, s1_score = s1_results[i]
             print(f"Stage 1: {s1_label} ({s1_score:.2f})")
 
             final_label = s1_label
@@ -248,13 +325,13 @@ class ProductRecognizer:
             if final_score < 0.9:
                 # --- Stage 3: VLM Fallback ---
                 # Only if cumulative score is low
-                s3_label, s3_score = self.call_vlm_fallback(crop)
+                s3_label, s3_score = self.call_vlm_fallback()
                 if s3_label != "Unknown":
                     final_label = s3_label
                     final_score = s3_score
                 else:
                     # Log low confidence detection for Active Learning
-                    self._log_low_confidence(image_path, crop, s1_label, s1_score)
+                    self._log_low_confidence(image_path, s1_label, s1_score)
 
             results.append({
                 'label': final_label if final_label else "Unknown",
@@ -264,24 +341,17 @@ class ProductRecognizer:
 
         return results
 
-    def _log_low_confidence(self, image_path, crop, s1_label, s1_score):
+    def _log_low_confidence(self, image_path, s1_label, s1_score):
         """
         Logs low confidence detections to a file for Active Learning.
         """
-        log_file = "active_learning_candidates.log"
         timestamp = datetime.now().isoformat()
 
-        # In a real system, we might save the crop to a folder
-        # crop_filename = f"low_conf_{timestamp}.jpg"
-        # cv2.imwrite(crop_filename, crop)
+        message = (f"[{timestamp}] Low confidence detection in {image_path}. "
+                   f"Stage 1 match: {s1_label} ({s1_score:.2f})")
 
-        with open(log_file, "a") as f:
-            f.write(f"[{timestamp}] Low confidence detection in {image_path}. "
-                    f"Stage 1 match: {s1_label} ({s1_score:.2f})\n")
+        self.logger.info(message)
 
 if __name__ == "__main__":
     recognizer = ProductRecognizer()
     print("DB Keys:", list(recognizer.product_db.keys()))
-    # Test detection (requires an image 'test_image.jpg')
-    # detections = recognizer.detect_objects("test_image.jpg")
-    # print(f"Detections: {len(detections)}")

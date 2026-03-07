@@ -2,3 +2,9 @@
 **/.*DS_Store
 *.db
 FridgeProject/firmware/secrets.h
+secrets.h
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
