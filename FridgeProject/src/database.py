@@ -20,3 +20,26 @@ def init_db():
     # they will be registered properly on the metadata.
     import src.models
     Base.metadata.create_all(bind=engine)
+    seed_data()
+
+def seed_data():
+    from src.models import ProductType
+    from src.utils import SHELF_LIFE, BASIC_ITEMS
+
+    # Check if we already have data
+    if ProductType.query.first() is not None:
+        return
+
+    print("Seeding database with initial product types...")
+
+    # Combine all unique names from SHELF_LIFE and BASIC_ITEMS
+    all_names = set(SHELF_LIFE.keys()) | set(BASIC_ITEMS)
+
+    for name in all_names:
+        days = SHELF_LIFE.get(name, 7)
+        is_basic = name in BASIC_ITEMS
+        pt = ProductType(name=name, shelf_life_days=days, is_basic=is_basic)
+        db_session.add(pt)
+
+    db_session.commit()
+    print("Database seeding complete.")

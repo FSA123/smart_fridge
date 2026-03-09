@@ -15,6 +15,15 @@ class FoodDetector(threading.Thread):
         self.interval = interval
         self.grace_period = grace_period # Seconds before marking undetected item as removed
         self.processed_images = set()
+
+        # Optimization: Prevent processing storm on restart by skipping old images
+        if os.path.exists(self.image_folder):
+            existing_files = sorted([f for f in os.listdir(self.image_folder) if f.endswith(".jpg")])
+            # Keep the last 5 images for context/track initialization, skip the rest
+            if len(existing_files) > 5:
+                self.processed_images.update(existing_files[:-5])
+                print(f"Skipped {len(existing_files) - 5} old images to prevent processing storm.")
+
         self.running = True
         self.daemon = True # Daemon thread exits when main program exits
 
@@ -37,11 +46,9 @@ class FoodDetector(threading.Thread):
         while self.running:
             try:
                 self.process_folder()
-                # We can also run a cleanup based on real time for items not seen recently
-                # but if we process images, we do cleanup there based on image time.
-                # If no images come, we might want to cleanup based on real time?
-                # For now, let's rely on image processing to trigger updates.
-                pass
+                # Note: Cleanup is handled within process_folder() based on image timestamps.
+                # Real-time cleanup is intentionally avoided to prevent expiring items
+                # during camera sleep intervals.
             except Exception as e:
                 print(f"Error in detector loop: {e}")
             time.sleep(self.interval)
@@ -62,10 +69,14 @@ class FoodDetector(threading.Thread):
         if not os.path.exists(self.image_folder):
             os.makedirs(self.image_folder)
 
-        current_files = sorted([f for f in os.listdir(self.image_folder) if f.endswith(".jpg")])
+        all_files = os.listdir(self.image_folder)
+        jpg_files = {f for f in all_files if f.endswith(".jpg")}
 
-        # Process only new files
-        new_files = [f for f in current_files if f not in self.processed_images]
+        # Memory leak fix: remove processed images that no longer exist in the folder
+        self.processed_images.intersection_update(jpg_files)
+
+        # Process only new files, in sorted order for deterministic processing
+        new_files = sorted([f for f in jpg_files if f not in self.processed_images])
 
         for file in new_files:
             self.processed_images.add(file)

@@ -6,7 +6,7 @@
 // ==========================================
 // 1. YOUR NETWORK & SERVER SETTINGS
 // ==========================================
-// Credentials are now in secrets.h
+// Credentials and API key are now in secrets.h
 
 // ==========================================
 // 2. HARDWARE PINOUT (AI-Thinker)
@@ -154,6 +154,7 @@ void takeAndSendPhoto() {
   
   http.begin(serverUrl);
   http.addHeader("Content-Type", "image/jpeg");
+  http.addHeader("X-API-Key", apiKey);
   
   int httpResponseCode = http.POST(fb->buf, fb->len);
   

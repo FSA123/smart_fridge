@@ -21,7 +21,7 @@ def test_stages2_3():
 
         # 2. Test VLM Fallback
         print("Testing VLM Fallback...")
-        vlm_label, vlm_score = recognizer.call_vlm_fallback(img)
+        vlm_label, vlm_score = recognizer.call_vlm_fallback()
         print(f"VLM Result: {vlm_label} (Score: {vlm_score})")
 
         if vlm_label == "Unknown":
